@@ -1,0 +1,287 @@
+<title>NEON DRIFT</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="theme-color" content="#090d20">
+<meta name="description" content="Anime-inspired mobile car racing game — dodge traffic, chase the high score">
+<style>
+/* Layout: full-bleed radial gradient bg, centred app column, game + side controls grid */
+:root {
+  --bg: #080b1b;
+  --panel: #10162b;
+  --border: #35416a;
+  --pink: #ff4fa3;
+  --cyan: #53f4ff;
+  --gold: #ffd166;
+  --text: #f5f7ff;
+  --muted: #a9b3d8;
+  color-scheme: dark;
+}
+/* single dark theme — neon arcade aesthetic */
+* { box-sizing: border-box }
+html, body {
+  margin: 0;
+  min-height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+}
+body {
+  background: radial-gradient(ellipse at 50% -20%, #293b72 0%, #10152d 45%, #080b1b 78%);
+  padding-block: 14px;
+  padding-left: max(14px, env(safe-area-inset-left, 0px));
+  padding-right: max(14px, env(safe-area-inset-right, 0px));
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+.app { width: min(100%, 780px); margin: auto }
+
+/* topbar */
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin: 4px 0 14px }
+.brand { font-weight: 1000; letter-spacing: 2px; font-size: clamp(19px, 4vw, 28px); line-height: 1 }
+.brand span { color: var(--cyan); text-shadow: 0 0 16px #53f4ff88 }
+.tag { font-size: 10px; letter-spacing: 2px; color: var(--pink); font-weight: 800; margin-top: 5px }
+.userbox { font-size: 12px; color: var(--muted); text-align: right }
+.userbox button { margin-left: 8px }
+
+/* panel */
+.panel { background: #10162bef; border: 1px solid var(--border); border-radius: 20px; box-shadow: 0 14px 45px #0005; padding: 14px }
+
+/* hud */
+.hud { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 10px }
+.stat { background: #080e22; border: 1px solid #273455; border-radius: 12px; padding: 8px 10px; text-align: center }
+.stat small { display: block; color: var(--muted); font-size: 10px; letter-spacing: 1.4px; font-weight: 800 }
+.stat strong { font-size: clamp(18px, 4vw, 26px); font-variant-numeric: tabular-nums }
+.pink { color: var(--pink) }
+.cyan { color: var(--cyan) }
+.gold { color: var(--gold) }
+
+/* game canvas */
+.gamewrap { position: relative; overflow: hidden; border: 2px solid #45527e; border-radius: 17px; background: #090e20; touch-action: pan-y }
+.gamewrap canvas { display: block; width: 100%; height: auto; aspect-ratio: 3 / 4; max-height: 65vh; object-fit: contain; touch-action: none }
+
+/* overlay */
+.overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 18px; background: #070b1bc9; backdrop-filter: blur(5px); text-align: center }
+.overlay.hidden { display: none }
+.modal { width: min(100%, 350px); background: linear-gradient(150deg, #182447f5, #0b1024f5); border: 1px solid #55639b; border-radius: 18px; padding: 22px 18px; box-shadow: 0 0 35px #53f4ff18 }
+.eyebrow { color: var(--cyan); font-size: 10px; letter-spacing: 3px; font-weight: 900 }
+.modal h1 { font-size: clamp(27px, 7vw, 39px); line-height: 1; margin: 10px 0; color: white; text-shadow: 3px 3px 0 #ff4fa366 }
+.modal p { font-size: 13px; line-height: 1.5; color: var(--muted) }
+
+/* buttons */
+.btn { border: 0; border-radius: 11px; padding: 11px 15px; font-weight: 900; cursor: pointer; color: #08101e; background: linear-gradient(100deg, var(--cyan), #9cfff9); box-shadow: 0 5px 18px #53f4ff22; transition: transform .12s, filter .12s }
+.btn:active { transform: scale(.97) }
+.btn.pinkbtn { background: linear-gradient(100deg, #ff4fa3, #ff8ac3); color: #21071a }
+.btn.ghost { background: #1c2749; color: #e9efff; border: 1px solid #3c4b77; box-shadow: none }
+.btn.small { padding: 7px 10px; font-size: 11px }
+.actions { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 14px }
+
+/* controls */
+.controls { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px }
+.controlbtn { font-size: 22px; padding: 14px; border-radius: 14px; background: #121c39; color: #fff; border: 1px solid #3d4b78; touch-action: none; user-select: none }
+.controlbtn span { display: block; font-size: 10px; letter-spacing: 2px; color: var(--muted); margin-top: 2px }
+
+/* tips */
+.tips { display: flex; justify-content: space-between; gap: 8px; color: var(--muted); font-size: 11px; margin-top: 10px; flex-wrap: wrap }
+.sectiontitle { font-size: 12px; letter-spacing: 2px; color: var(--cyan); font-weight: 900; margin: 2px 0 12px }
+
+/* auth form */
+.authfields { display: grid; gap: 10px; text-align: left; margin-top: 15px }
+label { font-size: 11px; color: var(--muted); font-weight: 700 }
+input { width: 100%; padding: 12px; background: #080e22; color: white; border: 1px solid #34436f; border-radius: 10px; margin-top: 5px; font: inherit; outline: none }
+input:focus { border-color: var(--cyan) }
+.message { min-height: 18px; font-size: 12px; color: var(--gold); margin-top: 8px }
+.hidden { display: none !important }
+.foot { text-align: center; color: #6f7ba5; font-size: 10px; margin: 14px 0 4px; letter-spacing: .5px }
+
+@media (min-width: 650px) {
+  .gamewrap canvas { max-height: 590px }
+  .gamearea { display: grid; grid-template-columns: minmax(0, 1fr) 175px; gap: 12px; align-items: start }
+  .controls { grid-template-columns: 1fr; margin-top: 0 }
+  .controlbtn { min-height: 105px }
+  .tips { display: block; line-height: 1.8 }
+}
+@media (max-width: 380px) {
+  body { padding-block: 8px }
+  .panel { padding: 9px }
+  .topbar { margin-bottom: 9px }
+  .stat { padding: 7px 3px }
+  .controls { gap: 7px }
+  .controlbtn { padding: 11px }
+}
+</style>
+
+<main class="app">
+  <header class="topbar">
+    <div>
+      <div class="brand">NEON <span>DRIFT</span></div>
+      <div class="tag">アニメ • STREET RACING</div>
+    </div>
+    <div class="userbox">
+      <div id="welcome">GUEST DRIVER</div>
+      <button class="btn small ghost" id="accountBtn">LOGIN / SIGN UP</button>
+    </div>
+  </header>
+
+  <section class="panel">
+    <div class="hud">
+      <div class="stat"><small>SCORE</small><strong class="cyan" id="score">00000</strong></div>
+      <div class="stat"><small>BEST RUN</small><strong class="gold" id="best">00000</strong></div>
+      <div class="stat"><small>SPEED</small><strong class="pink" id="speed">0</strong></div>
+    </div>
+    <div class="gamearea">
+      <div class="gamewrap">
+        <canvas id="game" width="450" height="600" aria-label="Car racing game"></canvas>
+        <div class="overlay" id="gameOverlay">
+          <div class="modal">
+            <div class="eyebrow">TOKYO • 2099</div>
+            <h1 id="overlayTitle">NEON<br>DRIFT</h1>
+            <p id="overlayText">Hit the midnight highway. Dodge rival cars, chase your high score, and become the street legend.</p>
+            <div class="actions">
+              <button class="btn" id="startBtn">▶ START RACE</button>
+              <button class="btn ghost" id="overlayAccount">DRIVER PROFILE</button>
+            </div>
+            <p style="font-size:10px;margin-bottom:0">← → / A D to steer&nbsp;•&nbsp;Mobile: use buttons below</p>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="controls">
+          <button class="controlbtn" id="leftBtn" aria-label="Steer left">◀<span>LEFT</span></button>
+          <button class="controlbtn" id="rightBtn" aria-label="Steer right">▶<span>RIGHT</span></button>
+        </div>
+        <div class="actions">
+          <button class="btn pinkbtn" id="pauseBtn">Ⅱ PAUSE</button>
+          <button class="btn ghost" id="restartBtn">↻ RESTART</button>
+        </div>
+        <div class="tips">
+          ✨ Avoid traffic to survive.<br>
+          ⚡ Speed increases over time.<br>
+          🏆 Best score saves on this device.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="foot">NEON DRIFT // ARCADE BUILD 1.0 • MADE FOR MOBILE</div>
+</main>
+
+<div class="overlay hidden" id="authOverlay" style="position:fixed;z-index:10">
+  <div class="modal">
+    <div class="eyebrow">DRIVER ID SYSTEM</div>
+    <h1 id="authTitle">WELCOME<br>RACER</h1>
+    <p>Save a local driver profile on this browser. This demo does not send credentials to a server.</p>
+    <div class="actions">
+      <button class="btn" id="loginTab">LOGIN</button>
+      <button class="btn ghost" id="signupTab">SIGN UP</button>
+    </div>
+    <form class="authfields" id="authForm">
+      <label>DRIVER NAME<input id="authName" autocomplete="username" maxlength="20" placeholder="e.g. Kaito" required></label>
+      <label id="passwordLabel">PASSWORD<input id="authPassword" type="password" autocomplete="current-password" minlength="4" maxlength="64" placeholder="At least 4 characters" required></label>
+      <button class="btn" type="submit" id="authSubmit">LOGIN TO GAME</button>
+    </form>
+    <div class="message" id="authMessage" role="status"></div>
+    <div class="actions"><button class="btn ghost" id="closeAuth">CLOSE</button></div>
+  </div>
+</div>
+
+<script>
+(() => {
+'use strict';
+const $ = id => document.getElementById(id);
+const canvas = $('game'), ctx = canvas.getContext('2d');
+const W=450,H=600, laneX=[145,225,305], roadLeft=105,roadRight=345;
+let state='ready', score=0, best=0, speed=4, frame=0, roadOffset=0, lastTime=0, spawnTimer=0;
+let player={x:225,y:490,w:38,h:66}, enemies=[], particles=[], keys={left:false,right:false};
+let currentUser=null, authMode='login', lastScoreKey='neondrift_guest_best';
+const storage = {
+  get(k,fallback=null){try{const v=localStorage.getItem(k);return v===null?fallback:v}catch{return fallback}},
+  set(k,v){try{localStorage.setItem(k,v)}catch{}}
+};
+function safeName(name){return name.trim().replace(/[<>]/g,'').slice(0,20)}
+function scoreKey(){return 'neondrift_best_'+(currentUser?currentUser.toLowerCase():'guest')}
+function loadBest(){lastScoreKey=scoreKey();best=Number(storage.get(lastScoreKey,'0'))||0;$('best').textContent=fmt(best)}
+function fmt(n){return Math.floor(n).toString().padStart(5,'0')}
+function updateHud(){$('score').textContent=fmt(score);$('best').textContent=fmt(best);$('speed').textContent=Math.round(speed*10)+' KM/H'}
+function setOverlay(title,desc,button='▶ START RACE'){$('overlayTitle').innerHTML=title;$('overlayText').textContent=desc;$('startBtn').textContent=button;$('gameOverlay').classList.remove('hidden')}
+function hideOverlay(){$('gameOverlay').classList.add('hidden')}
+function roundRect(c,x,y,w,h,r){c.beginPath();c.roundRect(x,y,w,h,r);c.fill()}
+function drawCar(x,y,w,h,color,playerCar=false){
+  ctx.save();ctx.translate(x,y);
+  ctx.fillStyle='#050712';roundRect(ctx,-w/2-4,9,8,17,3);roundRect(ctx,w/2-4,9,8,17,3);roundRect(ctx,-w/2-4,h-27,8,17,3);roundRect(ctx,w/2-4,h-27,8,17,3);
+  ctx.shadowColor=color;ctx.shadowBlur=playerCar?18:8;ctx.fillStyle=color;roundRect(ctx,-w/2,0,w,h,9);ctx.shadowBlur=0;
+  ctx.fillStyle=playerCar?'#16264a':'#20203b';roundRect(ctx,-w/2+5,10,w-10,20,5);
+  ctx.fillStyle=playerCar?'#8afaff':'#ffbadb';roundRect(ctx,-w/2+6,13,w-12,5,2);
+  ctx.fillStyle=playerCar?'#23365f':'#383251';roundRect(ctx,-w/2+6,37,w-12,14,4);
+  ctx.fillStyle='#fff4bb';roundRect(ctx,-w/2+3,3,7,5,2);roundRect(ctx,w/2-10,3,7,5,2);
+  ctx.fillStyle=playerCar?'#ff4fa3':'#ff315e';roundRect(ctx,-w/2+3,h-8,8,4,2);roundRect(ctx,w/2-11,h-8,8,4,2);
+  if(playerCar){ctx.strokeStyle='#e9ffff';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(0,23);ctx.lineTo(0,33);ctx.stroke();ctx.fillStyle='#fff';ctx.font='bold 9px sans-serif';ctx.textAlign='center';ctx.fillText('N',0,47)}
+  ctx.restore();
+}
+function drawBackground(){
+  const sky=ctx.createLinearGradient(0,0,0,H);sky.addColorStop(0,'#101b40');sky.addColorStop(.55,'#22234b');sky.addColorStop(1,'#101329');ctx.fillStyle=sky;ctx.fillRect(0,0,W,H);
+  for(let i=0;i<18;i++){let x=i*27-8,h=50+((i*37)%90);ctx.fillStyle=i%2?'#151c3c':'#1b2046';ctx.fillRect(x,135-h,20,h+80);ctx.fillStyle='#6b66a6';for(let wy=145-h;wy<190;wy+=15)for(let wx=x+5;wx<x+17;wx+=8){if((i+wy+wx)%3!==0){ctx.fillStyle=(i+wy)%2?'#53f4ff':'#ff4fa3';ctx.globalAlpha=.55;ctx.fillRect(wx,wy,3,5);ctx.globalAlpha=1}}}
+  ctx.fillStyle='#282c43';ctx.beginPath();ctx.moveTo(roadLeft-25,0);ctx.lineTo(roadRight+25,0);ctx.lineTo(roadRight+70,H);ctx.lineTo(roadLeft-70,H);ctx.closePath();ctx.fill();
+  ctx.fillStyle='#ff4fa3';ctx.fillRect(roadLeft-4,0,4,H);ctx.fillRect(roadRight,0,4,H);
+  ctx.fillStyle='#d3d7ef';ctx.globalAlpha=.5;ctx.fillRect(roadLeft+2,0,2,H);ctx.fillRect(roadRight-4,0,2,H);ctx.globalAlpha=1;
+  ctx.fillStyle='#9aa8c8';for(let lane=1;lane<=2;lane++){for(let y=-50+(roadOffset%90);y<H;y+=90){ctx.fillRect(roadLeft+lane*80-2,y,4,42)}}
+  for(let y=-20+(roadOffset%120);y<H;y+=120){ctx.fillStyle='#53f4ff';ctx.globalAlpha=.17;ctx.fillRect(roadLeft-22,y,9,24);ctx.fillRect(roadRight+13,y,9,24);ctx.globalAlpha=1}
+}
+function draw(){
+  ctx.clearRect(0,0,W,H);drawBackground();
+  for(let i=0;i<18;i++){let x=(i*71+13)%W,y=(i*113+frame*speed*2)%H;ctx.fillStyle='#d4faff';ctx.globalAlpha=.35;ctx.fillRect(x,y,2,8+speed);ctx.globalAlpha=1}
+  enemies.forEach(e=>drawCar(e.x,e.y,e.w,e.h,e.color,false));
+  drawCar(player.x,player.y,player.w,player.h,'#53f4ff',true);
+  particles.forEach(p=>{ctx.globalAlpha=Math.max(0,p.life/24);ctx.fillStyle=p.color;ctx.fillRect(p.x,p.y,p.size,p.size);ctx.globalAlpha=1});
+  if(state==='paused'){ctx.fillStyle='#06091acc';ctx.fillRect(0,0,W,H);ctx.fillStyle='#53f4ff';ctx.textAlign='center';ctx.font='900 36px system-ui';ctx.fillText('PAUSED',W/2,H/2);ctx.fillStyle='#fff';ctx.font='14px system-ui';ctx.fillText('Tap RESUME to keep racing',W/2,H/2+28)}
+}
+function resetGame(){score=0;speed=4;frame=0;roadOffset=0;spawnTimer=0;enemies=[];particles=[];player.x=W/2;player.y=H-110;keys.left=keys.right=false;updateHud()}
+function startGame(){resetGame();state='playing';hideOverlay();$('pauseBtn').textContent='Ⅱ PAUSE';lastTime=performance.now()}
+function endGame(){state='over';keys.left=keys.right=false;best=Math.max(best,score);storage.set(lastScoreKey,String(best));updateHud();setOverlay('RACE<br>OVER',`Final score: ${fmt(score)}. Best run: ${fmt(best)}. One more run, street legend?`,'↻ RACE AGAIN');burst(player.x,player.y,'#ff4fa3',30)}
+function burst(x,y,color,n){for(let i=0;i<n;i++)particles.push({x,y,vx:(Math.random()-.5)*6,vy:(Math.random()-.5)*6,size:2+Math.random()*4,life:12+Math.random()*15,color})}
+function intersects(a,b){return Math.abs(a.x-b.x)<(a.w+b.w)*.39 && Math.abs((a.y+a.h/2)-(b.y+b.h/2))<(a.h+b.h)*.39}
+function spawnEnemy(){const lane=laneX[Math.floor(Math.random()*laneX.length)];enemies.push({x:lane+(Math.random()*14-7),y:-85,w:35+Math.random()*5,h:61,color:['#ff4fa3','#ffb347','#a98bff','#ff5d72'][Math.floor(Math.random()*4)],v:Math.random()*.8})}
+function update(dt){
+  if(state!=='playing')return;
+  const step=Math.min(dt/16.67,2.3);frame+=step;roadOffset=(roadOffset+speed*step*2)%120;
+  speed=Math.min(10,4+score/950);score+=Math.round(speed*step);updateHud();
+  const move=4.8*step;if(keys.left)player.x-=move*2.1;if(keys.right)player.x+=move*2.1;player.x=Math.max(roadLeft+18,Math.min(roadRight-18,player.x));
+  spawnTimer+=dt;if(spawnTimer>Math.max(390,950-speed*48)){spawnEnemy();spawnTimer=0}
+  for(let i=enemies.length-1;i>=0;i--){const e=enemies[i];e.y+=(speed+e.v)*step*1.6;if(intersects({x:player.x,y:player.y,w:player.w,h:player.h},e)){endGame();return}if(e.y>H+30){enemies.splice(i,1);score+=25;updateHud()}}
+  particles.forEach(p=>{p.x+=p.vx*step;p.y+=p.vy*step;p.life-=step});particles=particles.filter(p=>p.life>0)
+}
+function loop(now){const dt=Math.min(45,now-(lastTime||now));lastTime=now;update(dt);draw();requestAnimationFrame(loop)}
+function setSteer(which,on){keys[which]=on}
+function bindHold(id,which){const el=$(id);el.addEventListener('pointerdown',e=>{e.preventDefault();el.setPointerCapture?.(e.pointerId);setSteer(which,true)});['pointerup','pointercancel','lostpointercapture'].forEach(ev=>el.addEventListener(ev,()=>{setSteer(which,false)}))}
+bindHold('leftBtn','left');bindHold('rightBtn','right');
+window.addEventListener('keydown',e=>{if(['ArrowLeft','ArrowRight','a','A','d','D',' '].includes(e.key))e.preventDefault();if(e.key==='ArrowLeft'||e.key==='a'||e.key==='A')keys.left=true;if(e.key==='ArrowRight'||e.key==='d'||e.key==='D')keys.right=true;if(e.key===' '&&state!=='playing')startGame();if((e.key==='p'||e.key==='P')&&state==='playing')togglePause()});
+window.addEventListener('keyup',e=>{if(e.key==='ArrowLeft'||e.key==='a'||e.key==='A')keys.left=false;if(e.key==='ArrowRight'||e.key==='d'||e.key==='D')keys.right=false});
+window.addEventListener('blur',()=>{keys.left=keys.right=false;if(state==='playing')togglePause()});
+function togglePause(){if(state==='playing'){state='paused';$('pauseBtn').textContent='▶ RESUME';keys.left=keys.right=false}else if(state==='paused'){state='playing';$('pauseBtn').textContent='Ⅱ PAUSE';lastTime=performance.now()}}
+$('startBtn').addEventListener('click',startGame);
+$('restartBtn').addEventListener('click',startGame);
+$('pauseBtn').addEventListener('click',()=>{if(state==='ready'||state==='over')startGame();else togglePause()});
+$('overlayAccount').addEventListener('click',openAuth);
+$('closeAuth').addEventListener('click',()=>{$('authOverlay').classList.add('hidden');$('authMessage').textContent=''});
+$('loginTab').addEventListener('click',()=>setAuthMode('login'));
+$('signupTab').addEventListener('click',()=>setAuthMode('signup'));
+function setAuthMode(mode){authMode=mode;$('authTitle').innerHTML=mode==='login'?'WELCOME<br>BACK':'JOIN THE<br>GRID';$('authSubmit').textContent=mode==='login'?'LOGIN TO GAME':'CREATE DRIVER';$('loginTab').className='btn '+(mode==='login'?'':'ghost');$('signupTab').className='btn '+(mode==='signup'?'':'ghost');$('authPassword').autocomplete=mode==='login'?'current-password':'new-password';$('authMessage').textContent=''}
+function openAuth(){setAuthMode('login');$('authName').value=currentUser||'';$('authPassword').value='';$('authOverlay').classList.remove('hidden')}
+function getUsers(){try{return JSON.parse(storage.get('neondrift_users','{}'))||{}}catch{return {}}}
+function hashDemo(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return(h>>>0).toString(16)}
+$('authForm').addEventListener('submit',e=>{
+  e.preventDefault();const name=safeName($('authName').value);const password=$('authPassword').value;
+  if(name.length<2){$('authMessage').textContent='Driver name must be at least 2 characters.';return}
+  if(password.length<4){$('authMessage').textContent='Password must be at least 4 characters.';return}
+  const users=getUsers(),key=name.toLowerCase(),hash=hashDemo(password);
+  if(authMode==='signup'){if(users[key]){$('authMessage').textContent='That driver name already exists on this device.';return}users[key]={name,hash,best:0};storage.set('neondrift_users',JSON.stringify(users))}
+  else{if(!users[key]||users[key].hash!==hash){$('authMessage').textContent='Driver name or password is incorrect.';return}}
+  currentUser=users[key].name;storage.set('neondrift_session',currentUser);$('welcome').textContent='✦ '+currentUser.toUpperCase();$('accountBtn').textContent='LOG OUT';$('authOverlay').classList.add('hidden');loadBest();updateHud();
+});
+$('accountBtn').addEventListener('click',()=>{if(currentUser){currentUser=null;storage.set('neondrift_session','');$('welcome').textContent='GUEST DRIVER';$('accountBtn').textContent='LOGIN / SIGN UP';loadBest();updateHud()}else openAuth()});
+const saveBest=()=>{best=Math.max(best,score);storage.set(lastScoreKey,String(best));if(currentUser){const users=getUsers(),u=users[currentUser.toLowerCase()];if(u){u.best=Math.max(u.best,best);storage.set('neondrift_users',JSON.stringify(users))}}};
+const origEnd=endGame;
+endGame=function(){origEnd();saveBest();updateHud()};
+function init(){const session=storage.get('neondrift_session','');if(session){const users=getUsers(),u=users[session.toLowerCase()];if(u){currentUser=u.name;$('welcome').textContent='✦ '+currentUser.toUpperCase();$('accountBtn').textContent='LOG OUT'}}loadBest();player.x=W/2;player.y=H-110;updateHud();draw();requestAnimationFrame(loop)}
+init();
+})();
+</script>
